@@ -14,8 +14,8 @@ menu1.add(telebot.types.InlineKeyboardButton(text = '>', callback_data ='right')
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):	
-    bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}, '
-                                      f'я бот, который строит маршрут между аудиториями МГТУ Станкин.')
+    bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}, ')
+                                      #f'я бот, который строит маршрут между аудиториями МГТУ Станкин.')
 
 @bot.message_handler(commands=['sendimg'])
 def sen_img(mess):
@@ -44,31 +44,32 @@ def make_way(mess):
 @bot.message_handler(commands=['test'])
 def send_test(mess):
     onlyfiles = [f for f in listdir('src/png/') if isfile(join('src/png/', f))]
-    bot.send_photo(mess.chat.id, photo=open(f"src/png/{onlyfiles[0]}", 'rb'), caption='Это МТГУ Станкин 1', reply_markup=menu1)
+    bot.send_photo(mess.chat.id, photo=open(f"src/png/{onlyfiles[0]}", 'rb'), caption='Шаг 1', reply_markup=menu1)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     onlyfiles = [f for f in listdir('src/png/') if isfile(join('src/png/', f))]
     if call.message:
-        i = re.findall( r'\d', call.message.text)
+        i = re.findall(r'\d', call.message.caption)
         i = int(i[0])
         if call.data == 'left':
             if i != 0:
                 i-=1
                 try:
-                    bot.edit_message_media(call.message.chat.id, call.message.message_id, menu1, open(f"src/png/{onlyfiles[i]}"))
-                    bot.edit_message_text(f'mess {i}', call.message.chat.id, call.message.message_id, reply_markup=menu1)
-                except:
-                    None
+                    with open(f'src/png/{onlyfiles[i]}','rb') as f:
+                        bot.edit_message_media(telebot.types.InputMediaPhoto(f), call.message.chat.id, call.message.message_id,  reply_markup=menu1)
+                        bot.edit_message_caption(f'Шаг: {i}', call.message.chat.id, call.message.message_id, reply_markup=menu1)
+                except Exception as e:
+                    bot.send_message(call.message.chat.id, f'Ошибка: {e}')
         if call.data == 'right':
                 i+=1
                 try:
-                    bot.edit_message_media(call.message.chat.id, call.message.message_id, menu1,
-                                           open(f"src/png/{onlyfiles[i]}"))
-                    bot.edit_message_text(f'mess {i}', call.message.chat.id, call.message.message_id, reply_markup=menu1)
-                except:
-                    None
+                    with open(f'src/png/{onlyfiles[i]}','rb') as f:
+                        bot.edit_message_media( telebot.types.InputMediaPhoto(f), call.message.chat.id, call.message.message_id, call.message.message_id,  reply_markup=menu1)
+                        bot.edit_message_caption(f'Шаг: {i}', call.message.chat.id, call.message.message_id, call.message.message_id,  reply_markup=menu1)
+                except Exception as e:
+                    bot.send_message(call.message.chat.id, f'Ошибка: {e}')
 
 
 @bot.message_handler(content_types=['text'])
@@ -78,4 +79,4 @@ def what_text(mess):
     else:
         bot.send_message(mess.chat.id, 'Я Вас не понимаю')
 
-bot.polling()
+bot.polling() 
