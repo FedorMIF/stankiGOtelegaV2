@@ -101,7 +101,7 @@ async def change_role_callback(callback_query: CallbackQuery):
 
 #-----------------Студент----------------------------------
 
-@dp.message_handler(lambda message: message.text == "Студент")
+@dp.message_handler(lambda message: message.text in ["Студент", "Администратор", "Сотрудник"])
 async def student_info_fullname(mess: types.Message, state: FSMContext):
     await state.update_data(role=mess.text.strip())
     await StudentInfo.fullname.set()
@@ -109,17 +109,30 @@ async def student_info_fullname(mess: types.Message, state: FSMContext):
 
 @dp.message_handler(lambda message: message.text and not message.text.isspace(), state=StudentInfo.fullname)
 async def student_info_group_number(mess: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    
     await state.update_data(fullname=mess.text.strip())
     await StudentInfo.next()
-    await bot.send_message(mess.chat.id, "Введите номер вашей группы:")
+
+    if user_data['role'] == "Студент":
+        await bot.send_message(mess.chat.id, "Введите номер вашей группы:")
+    else:
+        await bot.send_message(mess.chat.id, "Введите название вашего места работы ( кафедра, отдел ):")
 
 @dp.message_handler(lambda message: message.text and not message.text.isspace(), state=StudentInfo.group_number)
 async def student_info_group_role(mess: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+
     await state.update_data(group_number=mess.text.strip())
     await StudentInfo.next()
-    await bot.send_message(mess.chat.id, "Введите вашу роль в группе (Староста или Студент):")
 
-@dp.message_handler(lambda message: message.text in ["Староста", "Студент"], state=StudentInfo.group_role)
+    if user_data['role'] == "Студент":
+        await bot.send_message(mess.chat.id, "Введите вашу роль в группе (Староста или Студент):")
+    else:
+        await bot.send_message(mess.chat.id, "Введите вашу роль на месте работы")
+
+
+@dp.message_handler(lambda message: message.text, state=StudentInfo.group_role)
 async def student_info_phone(mess: types.Message, state: FSMContext):
     await state.update_data(group_role=mess.text)
     await StudentInfo.next()
@@ -137,7 +150,7 @@ async def process_phone_and_email(mess: types.Message, state: FSMContext):
  
     user_data = await state.get_data()
 
-    if user_data['role'] == 'Староста':
+    if user_data['group_role'] == 'Староста' or user_data['role'] in ["Администратор", "Сотрудник"]:
 
         user_info = f"{mess.from_user.id},{user_data['role']}"
         admins = await bd.get_admins()
@@ -175,9 +188,11 @@ async def confirm_role_change(callback_query: types.CallbackQuery):
 
     _, _, fullname, group_number, group_role, phone, email, _, _ = (callback_query.message.text).split('\n')
 
-    await bd.edit_user_role(int(user_id), fullname.split()[1], role, group_number.split()[1], group_role.split()[1], phone.split()[1], email.split()[1])
+    print((callback_query.message.text).split('\n'), callback_query.data.split(','))
 
-    await bot.send_message(int(user_id), f"Ваша роль успешно изменена на Студент")
+    await bd.edit_user_role(int(user_id), fullname.split(':')[1], role, group_number.split(':')[1], group_role.split(':')[1], phone.split(':')[1], email.split(':')[1])
+
+    await bot.send_message(int(user_id), f"Ваша роль успешно изменена на {role}")
 
     #await state.finish()
     await bot.edit_message_reply_markup(callback_query.from_user.id, callback_query.message.message_id)
