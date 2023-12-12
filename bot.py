@@ -78,11 +78,6 @@ async def send_welcome(message):
                                       f'я бот, который строит маршрут между аудиториями МГТУ Станкин.')
     await bd.add_new_user(message.from_user.first_name, message.chat.id, 'пользователь')
 
-@dp.message_handler(commands=['sendimg'])
-async def sen_img(mess):
-    onlyfiles = [f for f in listdir('src/png/') if isfile(join('src/png/', f))]
-    await bot.send_photo(mess.chat.id, photo=open(f"src/png/{random.choice(onlyfiles)}.png", 'rb'), caption='Это МТГУ Станкин')
-
 @dp.message_handler(commands=['myrole'])
 async def send_myrole(mess):
     user_id = mess.from_user.id
